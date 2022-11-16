@@ -40,7 +40,7 @@ guiColor = (50,50,50)
 #set up clock/window/surfaces
 c = pygame.time.Clock()
 #xDim, yDim = int(input("How wide would you like the screen? ")), int(input("How tall would you like the screen? "))
-xDim, yDim = 1000, 700
+xDim, yDim = 300, 200
 w = pygame.display.set_mode([xDim, yDim])
 pygame.display.set_caption("gamee")
 flashAlpha = 0
@@ -526,7 +526,7 @@ def convertSave(code):
 
 #gui functionality
 def guiFunction():
-    global platformTypes, scrollX,scrollY, selecting, selectedType, initx, inity, fTap, spaceKey, deleteKey, xDim
+    global platformTypes, scrollX,scrollY, selecting, selectedType, initx, inity, fTap, spaceKey, deleteKey, xDim, yDim
 
     #add parts to tile select
     for i in range(len(platformTypes)):
@@ -553,7 +553,7 @@ def guiFunction():
 
 #draw gui
 def drawGui(window):
-    global platformTypes, scrollX,scrollY, selectedType, initx, inity, xDim
+    global platformTypes, scrollX,scrollY, selectedType, initx, inity, xDim, yDim
 
     #clear surfaces
     guiSurface.fill(guiColor)
@@ -576,7 +576,7 @@ def drawGui(window):
     EasedFont("X",(255,255,255),80,xDim-50,50).draw(guiSurfaceUp)
 
     #blit surfaces to window
-    window.blit(guiSurface,(0,600))
+    window.blit(guiSurface,(0,yDim-100))
     window.blit(guiSurfaceUp,(0,0))
 
 #render screen
@@ -620,7 +620,7 @@ def renderScreen(window):
     #draw game screen
     if gameAlpha > 0 and not editing:
         gameSurface.set_alpha(gameAlpha)
-        pygame.draw.rect(gameSurface,darkGreen,pygame.Rect(0,250,1000,200))
+        pygame.draw.rect(gameSurface,darkGreen,pygame.Rect(0,yDim/2 -100,1000,200))
         for txt in text:
             txt.draw(gameSurface)
         window.blit(gameSurface,(0,0))
