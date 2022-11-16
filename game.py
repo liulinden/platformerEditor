@@ -19,7 +19,7 @@ space - (when checkpoint selected) set checkpoint
 
 #import and set up libraries
 import pygame, sys
-pygame.init()\
+pygame.init()
 
 
 #colors
@@ -47,11 +47,14 @@ flashAlpha = 0
 gameAlpha = 0
 flashSurface = pygame.Surface((xDim, yDim))
 guiSurface = pygame.Surface((xDim, 100))
+guiSurfaceUp = pygame.Surface((xDim, 100))
 gameSurface = pygame.Surface((xDim, yDim))
 guiSurface.fill((guiColor))
+guiSurfaceUp.fill((guiColor))
 flashSurface.fill((255,255,255))
 gameSurface.fill(lightGreen)
 guiSurface.set_alpha(235)
+guiSurfaceUp.set_alpha(235)
 timeSinceWin = 0
 
 #set up text
@@ -233,11 +236,15 @@ class PlatformGroup:
                         self.moveToBack(platform)
                     else:
                         self.moveToFront(platform)
+                
                 break
         
         #update platform positions to scroll position
         for platform in self.platforms:
             platform.updatePosition(scrollx, scrolly)
+        
+        fTap = False
+        deleteKey = False
     
     #unselect all platforms
     def unselectAll(self):
@@ -517,20 +524,60 @@ def convertSave(code):
             player.reset()
     platforms.unselectAll()
 
-#gui
-def doGui(window):
-    global platformTypes, scrollX,scrollY, selecting, selectedType, initx, inity
-    guiSurface.fill(guiColor)
+#gui functionality
+def guiFunction():
+    global platformTypes, scrollX,scrollY, selecting, selectedType, initx, inity, fTap, spaceKey, deleteKey, xDim
+
+    #add parts to tile select
     for i in range(len(platformTypes)):
         drawing = Platform(platformTypes[i],scrollX + 10 + (i * 100), scrollY + 10, 80, 80, True)
+
+        #select tiles
         if selecting:
             if Platform(platformTypes[i],scrollX + 10 + (i * 100), scrollY + 10 + yDim - 100, 80, 80).collisionRect.collidepoint(initx-scrollX,inity-scrollY):
                 selectedType = platformTypes.index(drawing.type)
+
+    txt = EasedFont("F",(255,255,255),80,50,50)
+    if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
+        fTap = True
+    
+    txt = EasedFont("F",(255,255,255),80,150,50)
+    if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
+        spaceKey = True
+    
+    txt = EasedFont("X",(255,255,255),80,xDim-50,50)
+    if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
+        deleteKey = True
+    
+    selecting = False
+
+#draw gui
+def drawGui(window):
+    global platformTypes, scrollX,scrollY, selectedType, initx, inity, xDim
+
+    #clear surfaces
+    guiSurface.fill(guiColor)
+    guiSurfaceUp.fill(guiColor)
+
+    #add parts to tile select
+    for i in range(len(platformTypes)):
+        drawing = Platform(platformTypes[i],scrollX + 10 + (i * 100), scrollY + 10, 80, 80, True)
+
+        #select/deselect drawings
         if drawing.type != platformTypes[selectedType]:
             drawing.selected = False
         drawing.draw(guiSurface)
-    selecting = False
+
+    EasedFont("F",(255,255,255),80,50,50).draw(guiSurfaceUp)
+
+    EasedFont("F",(255,255,255),80,150,50).draw(guiSurfaceUp)
+    pygame.draw.rect(guiSurfaceUp,(255,255,255),pygame.Rect(134,30,40,30))
+
+    EasedFont("X",(255,255,255),80,xDim-50,50).draw(guiSurfaceUp)
+
+    #blit surfaces to window
     window.blit(guiSurface,(0,600))
+    window.blit(guiSurfaceUp,(0,0))
 
 #render screen
 def renderScreen(window):
@@ -562,7 +609,7 @@ def renderScreen(window):
 
     #draw gui
     if editing:
-        doGui(window)
+        drawGui(window)
 
     #draw flash
     if flashAlpha > 0:
@@ -653,7 +700,6 @@ while True:
     if editing:
         
         #get inputs
-        fTap = False
         for event in pygame.event.get():
             
             #quit game
@@ -746,6 +792,9 @@ while True:
                 if pygame.Rect(0, yDim-100, xDim, 100).collidepoint(initx-scrollX, inity-scrollY):
                     selecting = True
                     platforms.unselectAll()
+
+                elif pygame.Rect(0, 0, xDim, 100).collidepoint(initx-scrollX, inity-scrollY):
+                    selecting = True
                 
                 #platform building
                 else:
@@ -852,7 +901,9 @@ while True:
                     bottomLimit += mousey - inity
 
                 initx, inity = mousex, mousey
-
+        
+        #gui code
+        guiFunction()
 
     #game
     else:
