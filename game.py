@@ -21,7 +21,6 @@ space - (when checkpoint selected) set checkpoint
 import pygame, sys
 pygame.init()
 
-
 #colors
 playerColor = (245, 66, 66)
 brightGreen = (219, 255, 176)
@@ -40,7 +39,7 @@ guiColor = (50,50,50)
 #set up clock/window/surfaces
 c = pygame.time.Clock()
 #xDim, yDim = int(input("How wide would you like the screen? ")), int(input("How tall would you like the screen? "))
-xDim, yDim = 300, 200
+xDim, yDim = 1000, 700
 w = pygame.display.set_mode([xDim, yDim])
 pygame.display.set_caption("gamee")
 flashAlpha = 0
@@ -526,7 +525,7 @@ def convertSave(code):
 
 #gui functionality
 def guiFunction():
-    global platformTypes, scrollX,scrollY, selecting, selectedType, initx, inity, fTap, spaceKey, deleteKey, xDim, yDim
+    global platformTypes, gameOver, gameAlpha, timeSinceWin, createRect, dragging, bottomLimitSelected, scrollX,scrollY, selecting, selectedType, initx, inity, fTap, spaceKey, deleteKey, xDim, yDim, editing
 
     #add parts to tile select
     for i in range(len(platformTypes)):
@@ -537,11 +536,30 @@ def guiFunction():
             if Platform(platformTypes[i],scrollX + 10 + (i * 100), scrollY + 10 + yDim - 100, 80, 80).collisionRect.collidepoint(initx-scrollX,inity-scrollY):
                 selectedType = platformTypes.index(drawing.type)
 
-    txt = EasedFont("F",(255,255,255),80,50,50)
+    txt = EasedFont("E",(255,255,255),80,50,50)
+    if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
+        gameOver = False
+        gameAlpha = 0
+        timeSinceWin = 0
+        createRect = []
+        dragging = False
+        player.selected = False
+        bottomLimitSelected = False
+        for i in range(len(platforms.platforms) - 1, -1, -1):
+            if platforms.platforms[i].selected == True:
+                platforms.platforms[i].selected = False
+                if platforms.platforms[i].type == "start":
+                    player.checkpointX = platforms.platforms[i].x
+                    player.checkpointY = platforms.platforms[i].y
+                    flashScreen("checkpoint")
+        editing = not editing
+        updateCollisions(platforms.platforms)
+
+    txt = EasedFont("F",(255,255,255),80,150,50)
     if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
         fTap = True
     
-    txt = EasedFont("F",(255,255,255),80,150,50)
+    txt = EasedFont("F",(255,255,255),80,250,50)
     if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
         spaceKey = True
     
@@ -568,10 +586,12 @@ def drawGui(window):
             drawing.selected = False
         drawing.draw(guiSurface)
 
-    EasedFont("F",(255,255,255),80,50,50).draw(guiSurfaceUp)
+    EasedFont("E",(255,255,255),80,50,50).draw(guiSurfaceUp)
 
     EasedFont("F",(255,255,255),80,150,50).draw(guiSurfaceUp)
-    pygame.draw.rect(guiSurfaceUp,(255,255,255),pygame.Rect(134,30,40,30))
+
+    EasedFont("F",(255,255,255),80,250,50).draw(guiSurfaceUp)
+    pygame.draw.rect(guiSurfaceUp,(255,255,255),pygame.Rect(234,30,40,30))
 
     EasedFont("X",(255,255,255),80,xDim-50,50).draw(guiSurfaceUp)
 
