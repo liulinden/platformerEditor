@@ -18,7 +18,7 @@ space - (when checkpoint selected) set checkpoint
 """
 
 #import and set up libraries
-import pygame, sys
+import pygame, sys, copy
 pygame.init()
 
 #colors
@@ -78,6 +78,8 @@ class Platform:
         #create platform
         self.x = x
         self.y = y
+        self.originalx = x
+        self.originaly = y
         self.type = type
         self.length = length
         self.height = height
@@ -130,6 +132,29 @@ class Platform:
 
         #update position
         self.updatePosition(scrollX, scrollY)
+        self.validPosition = self.checkPosValidity(platforms.platforms, player)
+
+    #printed
+    def __str__(self):
+        return self.type +str(self.x)+str(self.y)+str(self.length)+str(self.height)+str(self.selectable)
+
+    #check if platform in valid position
+    def checkPosValidity(self, platforms, player):
+        if self.type in ["ground"]:
+            if player.rect.colliderect(self.collisionRect):
+                return False
+            for platform in platforms:
+                if (platform.type in ["start", "checkpoint"]) and platform.collisionRect.colliderect(self.collisionRect):
+                    return False
+            return True
+        elif self.type in ["start","checkpoint"]:
+            for platform in platforms:
+                if platform.type == "ground" and platform.collisionRect.colliderect(self.collisionRect):
+                    return False
+            return True
+        else:
+            return True
+
 
     #update platform position to scroll position
     def updatePosition(self, scrollx, scrolly):
@@ -144,36 +169,40 @@ class Platform:
             drawRect[0].y = self.collisionRect.y + drawRect[3]
 
     #draw platform
-    def draw(self, window):
+    def draw(self, window, types="all", notypes=[]):
         global editing
 
         #draw platform
-        if editing or not (self.type == "checkpoint" or self.type == "start" or self.type == "end"):
-            if not self.selectable and self.type == "water":
-                s = pygame.Surface((self.collisionRect.width,self.collisionRect.height))
-                s.set_alpha(150)
-                for rect in self.drawRects:
-                    pygame.draw.rect(s, rect[1], pygame.Rect(0,0,rect[0].width,rect[0].height))
-                window.blit(s, (self.collisionRect.x,self.collisionRect.y))
-            elif not self.selectable and self.type == "checkpoint" or self.type == "start" or self.type == "end":
-                s = pygame.Surface((self.collisionRect.width,self.collisionRect.height))
-                s.set_alpha(180)
-                for rect in self.drawRects:
-                    pygame.draw.rect(s, rect[1], pygame.Rect(0,0,rect[0].width,rect[0].height))
-                window.blit(s, (self.collisionRect.x,self.collisionRect.y))
-            else:
-                for rect in self.drawRects:
-                    pygame.draw.rect(window, rect[1], rect[0])
+        if types == "all" or ((self.type in types) and (not self.type in notypes)):
+            if editing or not (self.type == "checkpoint" or self.type == "start" or self.type == "end"):
+                if not self.selectable and self.type == "water":
+                    s = pygame.Surface((self.collisionRect.width,self.collisionRect.height))
+                    s.set_alpha(150)
+                    for rect in self.drawRects:
+                        pygame.draw.rect(s, rect[1], pygame.Rect(0,0,rect[0].width,rect[0].height))
+                    window.blit(s, (self.collisionRect.x,self.collisionRect.y))
+                elif not self.selectable and self.type == "checkpoint" or self.type == "start" or self.type == "end":
+                    s = pygame.Surface((self.collisionRect.width,self.collisionRect.height))
+                    s.set_alpha(180)
+                    for rect in self.drawRects:
+                        pygame.draw.rect(s, rect[1], pygame.Rect(0,0,rect[0].width,rect[0].height))
+                    window.blit(s, (self.collisionRect.x,self.collisionRect.y))
+                else:
+                    for rect in self.drawRects:
+                        pygame.draw.rect(window, rect[1], rect[0])
         
-        #draw selection outline
-        if self.selectable:
-            if self.selected:
-                pygame.draw.rect(window, (255, 255, 255), self.collisionRect, 2)
+            #draw outlines
+            if self.selectable:
+                if self.selected:
+                    pygame.draw.rect(window, (255, 255, 255), self.collisionRect, 2)
+                else:
+                    pygame.draw.rect(window, (0, 0, 0), self.collisionRect, 2)
             else:
-                pygame.draw.rect(window, (0, 0, 0), self.collisionRect, 2)
-        else:
-            if self.selected:
-                pygame.draw.rect(window, (255, 255, 255), self.collisionRect, 2)
+                if not self.validPosition:
+                    pygame.draw.rect(window, (255, 0, 0), self.collisionRect, 2)
+                elif self.selected:
+                    pygame.draw.rect(window, (255,255,255), self.collisionRect, 2)
+                
 
 
 #platform group class
@@ -183,6 +212,29 @@ class PlatformGroup:
     def __init__(self):
         self.platforms = []
 
+    def __str__(self):
+        out = "["
+        for platform in self.platforms:
+            out+=str(platform)+" "
+        out += "]"
+        return out          
+
+    #adjust layers of platforms
+    def adjustLayers(self):
+        self.typeToFront("checkpoint")
+        self.typeToFront("end")
+        self.typeToFront("start")
+    
+    #move platform type to front
+    def typeToFront(self,platformType):
+        i = len(self.platforms)
+        while i > 0:
+            for j in range(i):
+                if self.platforms[j].type ==platformType:
+                    self.moveToFront(self.platforms[j])
+                    break
+            i-=1        
+
     #add platform to group at top layer
     def add(self, platform):
         self.platforms.append(platform)
@@ -190,16 +242,19 @@ class PlatformGroup:
     #remove platform from group
     def delete(self, platform):
         if platform.type != "start":
-            self.platforms.remove(platform)
+            self.forcedDelete(platform)
+    
+    def forcedDelete(self, platform):
+        self.platforms.remove(platform)
 
     #move a platform to front layer
     def moveToFront(self, platform):
-        self.delete(platform)
+        self.forcedDelete(platform)
         self.add(platform)
 
     #move a platform to back layer
     def moveToBack(self, platform):
-        self.delete(platform)
+        self.forcedDelete(platform)
         self.platforms.insert(0, platform)
     
     #move selected platform
@@ -211,11 +266,20 @@ class PlatformGroup:
             if platform.selected:
 
                 #move platform
+                if platform.x == player.checkpointX and platform.y == player.checkpointY and (platform.type == "start" or platform.type == "checkpoint"):
+                    player.checkpointX += changex
+                    player.checkpointY += changey
                 platform.x += changex
                 platform.y += changey
-                if platform.type == "start":
-                    player.checkpointX, player.checkpointY = platform.x, platform.y
+                platform.validPosition = platform.checkPosValidity(self.platforms, player)
                 platform.updatePosition(scrollX, scrollX)
+            
+            #set og pos
+            else:
+                if not platform.checkPosValidity(self.platforms, player):
+                    platform.x, platform.y = platform.originalx, platform.originaly
+                    platform.validPosition = True
+                platform.originalx, platform.originaly = platform.x, platform.y
 
     #update positions of platforms, move/delete selected platforms
     def updatePlatforms(self, scrollx, scrolly):
@@ -235,6 +299,7 @@ class PlatformGroup:
                         self.moveToBack(platform)
                     else:
                         self.moveToFront(platform)
+                    self.adjustLayers()
                 
                 break
         
@@ -249,6 +314,10 @@ class PlatformGroup:
     def unselectAll(self):
         for platform in self.platforms:
             platform.selected = False
+            if not platform.validPosition:
+                platform.x, platform.y = platform.originalx, platform.originaly
+                platform.validPosition = True
+            platform.originalx, platform.originaly = platform.x, platform.y
 
 #player class
 class Player():
@@ -257,6 +326,8 @@ class Player():
     def __init__(self, x, y, playerSize, color, checkpointx=0, checkpointy=0):
         self.x = x
         self.y = y
+        self.originalx = x
+        self.originaly = y
         self.checkpointX = checkpointx
         self.checkpointY = checkpointy
         self.selected = False
@@ -478,7 +549,7 @@ def updateCollisions(platformlist):
 #save code creator
 def createLevelSave(level):
     global allPlatformTypes, bottomLimit
-    save = ""
+    save = ":"
 
     #add bottom bound to code
     save += str(int(bottomLimit)) + "%"
@@ -521,6 +592,7 @@ def convertSave(code):
             player.checkpointX = int(args[1])
             player.checkpointY = int(args[2])
             player.reset()
+    platforms.adjustLayers()
     platforms.unselectAll()
 
 #gui functionality
@@ -545,15 +617,11 @@ def guiFunction():
         dragging = False
         player.selected = False
         bottomLimitSelected = False
-        for i in range(len(platforms.platforms) - 1, -1, -1):
-            if platforms.platforms[i].selected == True:
-                platforms.platforms[i].selected = False
-                if platforms.platforms[i].type == "start":
-                    player.checkpointX = platforms.platforms[i].x
-                    player.checkpointY = platforms.platforms[i].y
-                    flashScreen("checkpoint")
+        platforms.unselectAll()
         editing = not editing
         updateCollisions(platforms.platforms)
+        if player.checkCollisions(player.getCollisions("ground")):
+            player.x, player.y = player.originalx, player.originaly
 
     txt = EasedFont("F",(255,255,255),80,150,50)
     if selecting and txt.rect.collidepoint(initx-scrollX,inity-scrollY):
@@ -677,8 +745,8 @@ scrollY = -yDim/2+playerSize/2
 
 #set up platforms
 platforms = PlatformGroup()
-platforms.add(Platform("start",0,0,playerSize,playerSize))
 platforms.add(Platform("end",100,0,playerSize,playerSize))
+platforms.add(Platform("start",0,0,playerSize,playerSize))
 platforms.unselectAll()
 collisions = [[],[],[]]
 
@@ -760,15 +828,11 @@ while True:
                     dragging = False
                     player.selected = False
                     bottomLimitSelected = False
-                    for i in range(len(platforms.platforms) - 1, -1, -1):
-                        if platforms.platforms[i].selected == True:
-                            platforms.platforms[i].selected = False
-                            if platforms.platforms[i].type == "start":
-                                player.checkpointX = platforms.platforms[i].x
-                                player.checkpointY = platforms.platforms[i].y
-                                flashScreen("checkpoint")
+                    platforms.unselectAll()
                     editing = not editing
                     updateCollisions(platforms.platforms)
+                    if player.checkCollisions(player.getCollisions("ground")):
+                        player.x, player.y = player.originalx, player.originaly
                 if event.key == pygame.K_f:
                     fTap = True
                 if event.key == pygame.K_p:
@@ -830,11 +894,16 @@ while True:
                     #select player
                     if player.rect.collidepoint(initx-scrollX, inity-scrollY):
                         player.selected = True
+                        player.originalx, player.originaly = player.x, player.y
                         bottomLimitSelected = False
                         tv = False
                     elif pygame.Rect(0,bottomLimit-scrollY,xDim,5).collidepoint(initx-scrollX, inity-scrollY):
                         bottomLimitSelected = True
                         player.selected = False
+                        updateCollisions(platforms.platforms)
+                        if player.checkCollisions(player.getCollisions("ground")):
+                            player.x, player.y = player.originalx, player.originaly
+                        
                         tv = False
 
                     #select platforms
@@ -843,6 +912,9 @@ while True:
                             platforms.platforms[i].selected = True
                             tv = False
                             player.selected = False
+                            updateCollisions(platforms.platforms)
+                            if player.checkCollisions(player.getCollisions("ground")):
+                                player.x, player.y = player.originalx, player.originaly
                             bottomLimitSelected = False
                         elif platforms.platforms[i].selected:
                             platforms.platforms[i].selected = False
@@ -862,8 +934,10 @@ while True:
 
                     #create platform
                     if len(createRect) > 0:
-                        createRect[0].selected = False
-                        platforms.add(createRect[0])
+                        if createRect[0].validPosition:
+                            createRect[0].selected = False
+                            platforms.add(createRect[0])
+                            platforms.adjustLayers()
 
         #scroll screen
         if wKey:
@@ -921,6 +995,16 @@ while True:
                     bottomLimit += mousey - inity
 
                 initx, inity = mousex, mousey
+            
+            else:
+                updateCollisions(platforms.platforms)
+                if player.checkCollisions(player.getCollisions("ground")):
+                    player.x, player.y = player.originalx, player.originaly
+                for platform in platforms.platforms:
+                    if not platform.checkPosValidity(platforms.platforms, player):
+                        platform.x, platform.y = platform.originalx, platform.originaly
+                        platform.validPosition = True
+                    platform.originalx, platform.originaly = platform.x, platform.y
         
         #gui code
         guiFunction()
