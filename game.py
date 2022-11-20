@@ -41,7 +41,7 @@ c = pygame.time.Clock()
 #xDim, yDim = int(input("How wide would you like the screen? ")), int(input("How tall would you like the screen? "))
 xDim, yDim = 1000, 700
 w = pygame.display.set_mode([xDim, yDim])
-pygame.display.set_caption("gamee")
+pygame.display.set_caption("Untitled Platformer")
 flashAlpha = 0
 gameAlpha = 0
 flashSurface = pygame.Surface((xDim, yDim))
@@ -132,7 +132,6 @@ class Platform:
 
         #update position
         self.updatePosition(scrollX, scrollY)
-        self.validPosition = self.checkPosValidity(platforms.platforms, player)
 
     #printed
     def __str__(self):
@@ -140,6 +139,11 @@ class Platform:
 
     #check if platform in valid position
     def checkPosValidity(self, platforms, player):
+        player.updatePosition()
+        self.updatePosition
+        for platform in platforms:
+            platform.updatePosition(scrollX,scrollY)
+        
         if self.type in ["ground"]:
             if player.rect.colliderect(self.collisionRect):
                 return False
@@ -198,7 +202,7 @@ class Platform:
                 else:
                     pygame.draw.rect(window, (0, 0, 0), self.collisionRect, 2)
             else:
-                if not self.validPosition:
+                if self.selected and not self.checkPosValidity(platforms.platforms, player):
                     pygame.draw.rect(window, (255, 0, 0), self.collisionRect, 2)
                 elif self.selected:
                     pygame.draw.rect(window, (255,255,255), self.collisionRect, 2)
@@ -271,14 +275,12 @@ class PlatformGroup:
                     player.checkpointY += changey
                 platform.x += changex
                 platform.y += changey
-                platform.validPosition = platform.checkPosValidity(self.platforms, player)
                 platform.updatePosition(scrollX, scrollX)
             
             #set og pos
             else:
                 if not platform.checkPosValidity(self.platforms, player):
                     platform.x, platform.y = platform.originalx, platform.originaly
-                    platform.validPosition = True
                 platform.originalx, platform.originaly = platform.x, platform.y
 
     #update positions of platforms, move/delete selected platforms
@@ -295,7 +297,16 @@ class PlatformGroup:
                 
                 #change platform layer
                 elif fTap:
-                    if self.platforms.index(platform) == len(self.platforms) - 1:
+
+                    #find if platform in front
+                    inFront = True
+                    for i in range(self.platforms.index(platform)+1,len(self.platforms)):
+                        if not self.platforms[i].type in ["checkpoint","start","end"]:
+                            inFront = False
+                            break
+                    
+                    #change layer
+                    if inFront:
                         self.moveToBack(platform)
                     else:
                         self.moveToFront(platform)
@@ -307,6 +318,7 @@ class PlatformGroup:
         for platform in self.platforms:
             platform.updatePosition(scrollx, scrolly)
         
+        #reset keys
         fTap = False
         deleteKey = False
     
@@ -314,9 +326,8 @@ class PlatformGroup:
     def unselectAll(self):
         for platform in self.platforms:
             platform.selected = False
-            if not platform.validPosition:
+            if not platform.checkPosValidity(platforms.platforms, player):
                 platform.x, platform.y = platform.originalx, platform.originaly
-                platform.validPosition = True
             platform.originalx, platform.originaly = platform.x, platform.y
 
 #player class
@@ -326,6 +337,7 @@ class Player():
     def __init__(self, x, y, playerSize, color, checkpointx=0, checkpointy=0):
         self.x = x
         self.y = y
+        self.canWin = True
         self.originalx = x
         self.originaly = y
         self.checkpointX = checkpointx
@@ -524,8 +536,13 @@ class Player():
             self.xspeed *= friction
         
         #gameover
-        if self.checkCollisions(self.getCollisions("end")):
+        if self.checkCollisions(self.getCollisions("end")) and self.canWin:
             gameOver = True
+            self.canWin = False
+        elif self.checkCollisions(self.getCollisions("end")):
+            self.canWin = False
+        else:
+            self.canWin = True
 
     #dragged move
     def move(self, changex, changey):
@@ -567,10 +584,19 @@ def convertSave(code):
     global platforms, allPlatformTypes, bottomLimit
 
     #convert code  
-    platforms.platforms = []
     i = 0
+
+    #get caption
+    caption = ""
     while code[i] != ':':
+        caption += code[i]
         i += 1
+
+    #set capation
+    if not caption == "":
+        pygame.display.set_caption(caption)
+    
+    #get bottom limit of level
     i += 1
     arg = ""
     while code[i] != '%':
@@ -578,6 +604,9 @@ def convertSave(code):
         i += 1
     i += 1
     bottomLimit = int(arg)
+    platforms.platforms = []
+
+    #get platforms
     while code[i] != '/':
         args = []
         for j in range(5):
@@ -587,13 +616,20 @@ def convertSave(code):
                 i+=1
             args.append(arg)
             i += 1
+        
+        #add platform
         platforms.add(Platform(allPlatformTypes[int(args[0])], int(args[1]), int(args[2]), int(args[3]), int(args[4])))
+
+        #set starting checkpoint
         if allPlatformTypes[int(args[0])] == "start":
             player.checkpointX = int(args[1])
             player.checkpointY = int(args[2])
             player.reset()
+    
+    #adjust platforms
     platforms.adjustLayers()
     platforms.unselectAll()
+
 
 #gui functionality
 def guiFunction():
@@ -706,13 +742,15 @@ def renderScreen(window):
         flashAlpha -= 2
 
     #draw game screen
-    if gameAlpha > 0 and not editing:
+    if gameAlpha > 0: 
         gameSurface.set_alpha(gameAlpha)
         pygame.draw.rect(gameSurface,darkGreen,pygame.Rect(0,yDim/2 -100,1000,200))
         for txt in text:
             txt.draw(gameSurface)
         window.blit(gameSurface,(0,0))
         if timeSinceWin > 200:
+            editing = True
+        if editing:
             gameAlpha -= 2
 
     #update screen
@@ -934,7 +972,7 @@ while True:
 
                     #create platform
                     if len(createRect) > 0:
-                        if createRect[0].validPosition:
+                        if createRect[0].checkPosValidity(platforms.platforms, player):
                             createRect[0].selected = False
                             platforms.add(createRect[0])
                             platforms.adjustLayers()
@@ -1003,7 +1041,6 @@ while True:
                 for platform in platforms.platforms:
                     if not platform.checkPosValidity(platforms.platforms, player):
                         platform.x, platform.y = platform.originalx, platform.originaly
-                        platform.validPosition = True
                     platform.originalx, platform.originaly = platform.x, platform.y
         
         #gui code
