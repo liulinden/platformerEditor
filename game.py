@@ -59,8 +59,6 @@ guiSurfaceUp.set_alpha(235)
 timeSinceWin = 0
 
 # set up text
-
-
 class EasedFont:
     def __init__(self, text, color, size, x, y):
         font = pygame.font.Font("FredokaOne-Regular.ttf", size)
@@ -71,13 +69,10 @@ class EasedFont:
     def draw(self, surface):
         surface.blit(self.txt, self.rect)
 
-
 text = [EasedFont("YOU WIN", brightGreen, 100, xDim//2, yDim//2)]
 #[EasedFont("YOU WIN",darkGreen,100,xDim//2+7,yDim//2-7),EasedFont("YOU WIN",darkGreen,100,xDim//2+7,yDim//2+7),EasedFont("YOU WIN",darkGreen,100,xDim//2-7,yDim//2+7),EasedFont("YOU WIN",darkGreen,100,xDim//2-7,yDim//2-7),EasedFont("YOU WIN",brightGreen,100,xDim//2,yDim//2)]
 
 # platform class
-
-
 class Platform:
 
     # initialize platform
@@ -182,7 +177,6 @@ class Platform:
             return True
 
     # update platform position to scroll position
-
     def updatePosition(self, scrollx, scrolly):
 
         # update collision rectangle
@@ -360,9 +354,8 @@ class PlatformGroup:
                 platform.x, platform.y = platform.originalx, platform.originaly
             platform.originalx, platform.originaly = platform.x, platform.y
 
+
 # player class
-
-
 class Player():
 
     # initialize player
@@ -557,6 +550,7 @@ class Player():
             self.xspeed *= 0.98
             self.yspeed *= 0.98
 
+        #out of water
         else:
 
             # player movements
@@ -606,16 +600,14 @@ def createLevelSave(level):
 
     # add platforms to code
     for platform in level.platforms:
-        save += str(allPlatformTypes.index(platform.type)) + "%" + str(int(platform.x)) + "%" + str(
-            int(platform.y)) + "%" + str(int(platform.length)) + "%" + str(int(platform.height)) + "%"
+        save += str(allPlatformTypes.index(platform.type)) + "%" + str(int(platform.x)) + "%" + str(int(platform.y)) + "%" + str(int(platform.length)) + "%" + str(int(platform.height)) + "%"
     save += "/"
 
     # return code
     return save
 
+
 # save code converter
-
-
 def convertSave(code):
     global platforms, allPlatformTypes, bottomLimit
 
@@ -654,8 +646,7 @@ def convertSave(code):
             i += 1
 
         # add platform
-        platforms.add(Platform(allPlatformTypes[int(args[0])], int(
-            args[1]), int(args[2]), int(args[3]), int(args[4])))
+        platforms.add(Platform(allPlatformTypes[int(args[0])], int(args[1]), int(args[2]), int(args[3]), int(args[4])))
 
         # set starting checkpoint
         if allPlatformTypes[int(args[0])] == "start":
@@ -682,38 +673,49 @@ def guiFunction():
             if Platform(platformTypes[i], scrollX + 10 + (i * 100), scrollY + 10 + yDim - 100, 80, 80).collisionRect.collidepoint(initx-scrollX, inity-scrollY):
                 selectedType = platformTypes.index(drawing.type)
 
-    txt = EasedFont("E", (255, 255, 255), 80, 50, 50)
+    txt = EasedFont("E", (255, 255, 255), 70, 80, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
         gameOver = False
         gameAlpha = 0
         timeSinceWin = 0
         createRect = []
         dragging = False
-        player.selected = False
         bottomLimitSelected = False
         platforms.unselectAll()
         editing = not editing
         updateCollisions(platforms.platforms)
-        if player.checkCollisions(player.getCollisions("ground")):
+        if player.selected and player.checkCollisions(player.getCollisions("ground")):
             player.x, player.y = player.originalx, player.originaly
+        player.selected = False
 
-    txt = EasedFont("F", (255, 255, 255), 80, 150, 50)
+    txt = EasedFont("F", (255, 255, 255), 70, 205, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
         fTap = True
 
-    txt = EasedFont("F", (255, 255, 255), 80, 250, 50)
+    txt = EasedFont("F", (255, 255, 255), 70, 330, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
         spaceKey = True
 
-    txt = EasedFont("X", (255, 255, 255), 80, xDim-50, 50)
+    txt = EasedFont("X", (255, 255, 255), 70, xDim-80, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
         deleteKey = True
+    
+    txt = EasedFont("Load", (255, 255, 255), 55, 525, 50)
+    if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
+        savecode = pygame.scrap.get("text/plain;charset=utf-8").decode("utf-16")
+        pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
+        convertSave(savecode)
+
+    txt = EasedFont("Save", (255, 255, 255), 55, 740, 50)
+    if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
+        savecode = createLevelSave(platforms)
+        pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
+        print("Here's your savecode:\n"+savecode)
 
     selecting = False
 
+
 # draw gui
-
-
 def drawGui(window):
     global platformTypes, scrollX, scrollY, selectedType, initx, inity, xDim, yDim
 
@@ -731,15 +733,14 @@ def drawGui(window):
             drawing.selected = False
         drawing.draw(guiSurface)
 
-    EasedFont("E", (255, 255, 255), 80, 50, 50).draw(guiSurfaceUp)
-
-    EasedFont("F", (255, 255, 255), 80, 150, 50).draw(guiSurfaceUp)
-
-    EasedFont("F", (255, 255, 255), 80, 250, 50).draw(guiSurfaceUp)
-    pygame.draw.rect(guiSurfaceUp, (255, 255, 255),
-                     pygame.Rect(234, 30, 40, 30))
-
-    EasedFont("X", (255, 255, 255), 80, xDim-50, 50).draw(guiSurfaceUp)
+    #draw buttons
+    EasedFont("E", (255, 255, 255), 70, 80, 50).draw(guiSurfaceUp)
+    EasedFont("F", (255, 255, 255), 70, 205, 50).draw(guiSurfaceUp)
+    EasedFont("F", (255, 255, 255), 70, 330, 50).draw(guiSurfaceUp)
+    pygame.draw.rect(guiSurfaceUp, (255, 255, 255), pygame.Rect(314, 30, 37, 27))
+    EasedFont("Load", (255, 255, 255), 55, 525, 50).draw(guiSurfaceUp)
+    EasedFont("Save", (255, 255, 255), 55, 740, 50).draw(guiSurfaceUp)
+    EasedFont("X", (255, 255, 255), 70, xDim-80, 50).draw(guiSurfaceUp)
 
     # blit surfaces to window
     window.blit(guiSurface, (0, yDim-100))
@@ -787,8 +788,7 @@ def renderScreen(window):
     # draw game screen
     if gameAlpha > 0:
         gameSurface.set_alpha(gameAlpha)
-        pygame.draw.rect(gameSurface, darkGreen,
-                         pygame.Rect(0, yDim/2 - 100, 1000, 200))
+        pygame.draw.rect(gameSurface, darkGreen, pygame.Rect(0, yDim/2 - 100, 1000, 200))
         for txt in text:
             txt.draw(gameSurface)
         window.blit(gameSurface, (0, 0))
@@ -817,8 +817,7 @@ def flashScreen(cause):
 # set up platform creator
 createRect = []
 platformTypes = ["ground", "water", "lava", "wood", "checkpoint", "end"]
-allPlatformTypes = ["start", "ground", "water",
-                    "lava", "wood", "checkpoint", "end"]
+allPlatformTypes = ["start", "ground", "water", "lava", "wood", "checkpoint", "end"]
 selectedType = 0
 
 # set up player
@@ -912,25 +911,22 @@ while True:
                     timeSinceWin = 0
                     createRect = []
                     dragging = False
-                    player.selected = False
                     bottomLimitSelected = False
                     platforms.unselectAll()
                     editing = not editing
                     updateCollisions(platforms.platforms)
-                    if player.checkCollisions(player.getCollisions("ground")):
+                    if player.selected and player.checkCollisions(player.getCollisions("ground")):
                         player.x, player.y = player.originalx, player.originaly
+                    player.selected = False
                 if event.key == pygame.K_f:
                     fTap = True
                 if event.key == pygame.K_p:
-                    savecode = pygame.scrap.get(
-                        "text/plain;charset=utf-8").decode("utf-16")
+                    savecode = pygame.scrap.get("text/plain;charset=utf-8").decode("utf-16")
                     pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
-                    print(savecode)
                     convertSave(savecode)
                     # if input("Would you like to input a save code? (y/n) ") == "y":
                     #convertSave(input("Input your save code: "))
                 if event.key == pygame.K_o:
-
                     savecode = createLevelSave(platforms)
                     pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
                     print("Here's your savecode:\n"+savecode)
@@ -993,10 +989,10 @@ while True:
                         tv = False
                     elif pygame.Rect(0, bottomLimit-scrollY, xDim, 5).collidepoint(initx-scrollX, inity-scrollY):
                         bottomLimitSelected = True
-                        player.selected = False
                         updateCollisions(platforms.platforms)
-                        if player.checkCollisions(player.getCollisions("ground")):
+                        if player.selected and player.checkCollisions(player.getCollisions("ground")):
                             player.x, player.y = player.originalx, player.originaly
+                        player.selected = False
 
                         tv = False
 
@@ -1005,10 +1001,10 @@ while True:
                         if platforms.platforms[i].collisionRect.collidepoint(initx-scrollX, inity-scrollY) and tv:
                             platforms.platforms[i].selected = True
                             tv = False
-                            player.selected = False
                             updateCollisions(platforms.platforms)
-                            if player.checkCollisions(player.getCollisions("ground")):
+                            if player.selected and player.checkCollisions(player.getCollisions("ground")):
                                 player.x, player.y = player.originalx, player.originaly
+                            player.selected = False
                             bottomLimitSelected = False
                         elif platforms.platforms[i].selected:
                             platforms.platforms[i].selected = False
@@ -1095,7 +1091,7 @@ while True:
 
             else:
                 updateCollisions(platforms.platforms)
-                if player.checkCollisions(player.getCollisions("ground")):
+                if player.selected and player.checkCollisions(player.getCollisions("ground")):
                     player.x, player.y = player.originalx, player.originaly
                 for platform in platforms.platforms:
                     if not platform.checkPosValidity(platforms.platforms, player):
@@ -1191,6 +1187,8 @@ while True:
                 timeSinceWin += 1
 
     # update screen
+    if scrollY > bottomLimit - 550:
+        scrollY = bottomLimit - 550
     platforms.updatePlatforms(scrollX, scrollY)
     player.updatePosition()
     renderScreen(w)
