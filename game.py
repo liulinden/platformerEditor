@@ -610,7 +610,7 @@ def createLevelSave(level):
 # save code converter
 def convertSave(code):
     global platforms, allPlatformTypes, bottomLimit
-
+    
     # convert code
     i = 0
 
@@ -619,6 +619,8 @@ def convertSave(code):
     while code[i] != ':':
         caption += str(code[i])
         i += 1
+        if not i < len(code):
+            return()
 
     # set capation
     if not caption == "":
@@ -626,11 +628,17 @@ def convertSave(code):
 
     # get bottom limit of level
     i += 1
+    if not i < len(code):
+        return()
     arg = ""
     while code[i] != '%':
         arg += code[i]
         i += 1
+        if not i < len(code):
+            return()
     i += 1
+    if not i < len(code):
+        return()
     bottomLimit = int(arg)
     platforms.platforms = []
 
@@ -642,8 +650,12 @@ def convertSave(code):
             while code[i] != '%':
                 arg += code[i]
                 i += 1
+                if not i < len(code):
+                    return()
             args.append(arg)
             i += 1
+            if not i < len(code):
+                return()
 
         # add platform
         platforms.add(Platform(allPlatformTypes[int(args[0])], int(args[1]), int(args[2]), int(args[3]), int(args[4])))
@@ -702,13 +714,20 @@ def guiFunction():
     
     txt = EasedFont("Load", (255, 255, 255), 55, 525, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
-        savecode = pygame.scrap.get("text/plain;charset=utf-8").decode("utf-16")
-        pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
-        convertSave(savecode)
+        for t in pygame.scrap.get_types():
+            decodeType = "utf-8"
+            if t == "HTML Format":
+                t = "text/plain;charset=utf-8"
+                decodeType = "utf-16"
+            elif t != "text/plain":
+                continue
+            savecode = pygame.scrap.get(t).decode(decodeType)
+            convertSave(savecode)
 
     txt = EasedFont("Save", (255, 255, 255), 55, 740, 50)
     if selecting and txt.rect.collidepoint(initx-scrollX, inity-scrollY):
         savecode = createLevelSave(platforms)
+        flashScreen("reset")
         pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
         print("Here's your savecode:\n"+savecode)
 
@@ -921,14 +940,21 @@ while True:
                 if event.key == pygame.K_f:
                     fTap = True
                 if event.key == pygame.K_p:
-                    savecode = pygame.scrap.get("text/plain;charset=utf-8").decode("utf-16")
-                    pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
-                    convertSave(savecode)
+                    for t in pygame.scrap.get_types():
+                        decodeType = "utf-8"
+                        if t == "HTML Format":
+                            t = "text/plain;charset=utf-8"
+                            decodeType = "utf-16"
+                        elif t != "text/plain":
+                            continue
+                        savecode = pygame.scrap.get(t).decode(decodeType)
+                        convertSave(savecode)
                     # if input("Would you like to input a save code? (y/n) ") == "y":
                     #convertSave(input("Input your save code: "))
                 if event.key == pygame.K_o:
                     savecode = createLevelSave(platforms)
                     pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
+                    flashScreen("reset")
                     print("Here's your savecode:\n"+savecode)
 
             # key up inputs
@@ -1187,8 +1213,12 @@ while True:
                 timeSinceWin += 1
 
     # update screen
-    if scrollY > bottomLimit - 550:
-        scrollY = bottomLimit - 550
+    if scrollY > bottomLimit - 350:
+        scrollY = bottomLimit - 350
+    if not editing:
+        if scrollY > bottomLimit - 600:
+            scrollY += round((bottomLimit - 600 - scrollY) / 30)
+
     platforms.updatePlatforms(scrollX, scrollY)
     player.updatePosition()
     renderScreen(w)
