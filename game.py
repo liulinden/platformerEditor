@@ -43,6 +43,7 @@ c = pygame.time.Clock()
 xDim, yDim = 1000, 700
 w = pygame.display.set_mode([xDim, yDim])
 pygame.display.set_caption("Untitled Platformer")
+pygame.scrap.init()
 flashAlpha = 0
 gameAlpha = 0
 flashSurface = pygame.Surface((xDim, yDim))
@@ -624,7 +625,7 @@ def convertSave(code):
     # get caption
     caption = ""
     while code[i] != ':':
-        caption += code[i]
+        caption += str(code[i])
         i += 1
 
     # set capation
@@ -744,9 +745,8 @@ def drawGui(window):
     window.blit(guiSurface, (0, yDim-100))
     window.blit(guiSurfaceUp, (0, 0))
 
+
 # render screen
-
-
 def renderScreen(window):
     global flashAlpha, gameAlpha, editing, timeSinceWin, text, darkGreen, sky, lava, bottomLimit
 
@@ -787,7 +787,8 @@ def renderScreen(window):
     # draw game screen
     if gameAlpha > 0:
         gameSurface.set_alpha(gameAlpha)
-        pygame.draw.rect(gameSurface, darkGreen, pygame.Rect(0, yDim/2 - 100, 1000, 200))
+        pygame.draw.rect(gameSurface, darkGreen,
+                         pygame.Rect(0, yDim/2 - 100, 1000, 200))
         for txt in text:
             txt.draw(gameSurface)
         window.blit(gameSurface, (0, 0))
@@ -816,7 +817,8 @@ def flashScreen(cause):
 # set up platform creator
 createRect = []
 platformTypes = ["ground", "water", "lava", "wood", "checkpoint", "end"]
-allPlatformTypes = ["start", "ground", "water", "lava", "wood", "checkpoint", "end"]
+allPlatformTypes = ["start", "ground", "water",
+                    "lava", "wood", "checkpoint", "end"]
 selectedType = 0
 
 # set up player
@@ -920,11 +922,18 @@ while True:
                 if event.key == pygame.K_f:
                     fTap = True
                 if event.key == pygame.K_p:
-                    if input("Would you like to input a save code? (y/n) ") == "y":
-                        convertSave(input("Input your save code: "))
+                    savecode = pygame.scrap.get(
+                        "text/plain;charset=utf-8").decode("utf-16")
+                    pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
+                    print(savecode)
+                    convertSave(savecode)
+                    # if input("Would you like to input a save code? (y/n) ") == "y":
+                    #convertSave(input("Input your save code: "))
                 if event.key == pygame.K_o:
-                    print("Here's your savecode:\n",
-                          createLevelSave(platforms))
+
+                    savecode = createLevelSave(platforms)
+                    pygame.scrap.put(pygame.SCRAP_TEXT, savecode.encode())
+                    print("Here's your savecode:\n"+savecode)
 
             # key up inputs
             if event.type == pygame.KEYUP:
