@@ -609,7 +609,7 @@ def createLevelSave(level):
 
 # save code converter
 def convertSave(code):
-    global platforms, allPlatformTypes, bottomLimit
+    global platforms, allPlatformTypes, bottomLimit, scrollY, scrollX
     
     # convert code
     i = 0
@@ -664,6 +664,8 @@ def convertSave(code):
         if allPlatformTypes[int(args[0])] == "start":
             player.checkpointX = int(args[1])
             player.checkpointY = int(args[2])
+            scrollX = player.checkpointX - xDim/2 + playerSize/2
+            scrollY = player.checkpointY - yDim/2 + playerSize/2
             player.reset()
 
     # adjust platforms
